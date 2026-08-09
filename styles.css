@@ -99,7 +99,19 @@ input[type="number"] { -moz-appearance: textfield; }
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; appearance: none; }
 input[type="checkbox"] { width: 20px; min-height: 20px; margin: 0; padding: 0; -webkit-appearance: checkbox; appearance: auto; accent-color: var(--green); }
-select { -webkit-appearance: menulist; appearance: auto; }
+select {
+  height: 46px;
+  padding-right: 38px;
+  line-height: 1.25;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #65736d 50%),
+    linear-gradient(135deg, #65736d 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
 textarea { min-height: 78px; resize: vertical; }
 input::placeholder, textarea::placeholder { color: #99a29e; }
 .field-hint, .asset-hint { min-height: 1.2em; margin-top: 6px; color: var(--ink-2); font-size: .7rem; line-height: 1.45; }
@@ -225,7 +237,7 @@ input::placeholder, textarea::placeholder { color: #99a29e; }
 
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
 .toolbar input, .toolbar select { width: auto; min-width: 0; flex: 1; margin: 0; min-height: 42px; }
-.toolbar select { flex: 0 0 112px; }
+.toolbar select { flex: 0 0 112px; height: 42px; }
 .toolbar .ledger-search { flex: 1 1 100%; }
 .toolbar input[type="month"], .toolbar select { flex: 1 1 calc(50% - 4px); }
 .records { min-height: 240px; }

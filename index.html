@@ -34,14 +34,17 @@
           <span class="tag" id="editingTag" hidden>編輯中</span>
         </div>
         <form class="card-body form-grid" id="recordForm">
-          <label>股票代號
-            <input id="stockCode" name="stockCode" inputmode="text" autocomplete="off" list="stockCodes" placeholder="例如 2330、0050" required maxlength="12">
+          <div class="form-field">
+            <label for="stockCode">股票代號</label>
+            <input id="stockCode" name="stockCode" inputmode="text" autocomplete="off" list="stockCodes" placeholder="可輸入新代號，或選擇用過的" required maxlength="12">
             <datalist id="stockCodes"></datalist>
-          </label>
-          <label>股票名稱
-            <input id="stockName" name="stockName" autocomplete="off" list="stockNames" placeholder="例如 台積電" required maxlength="40">
-            <datalist id="stockNames"></datalist>
-          </label>
+            <div class="field-hint">選單只顯示正式紀錄用過的代號</div>
+          </div>
+          <div class="form-field lookup-field">
+            <label for="stockName">股票名稱</label>
+            <input id="stockName" name="stockName" autocomplete="off" placeholder="輸入關鍵字，例如 富邦" required maxlength="40" aria-autocomplete="list" aria-controls="stockNameSuggestions" aria-expanded="false">
+            <div class="name-suggestions" id="stockNameSuggestions" role="listbox" aria-label="股票名稱搜尋結果" hidden></div>
+          </div>
           <label>日期
             <input id="date" name="date" type="date" required>
           </label>
@@ -55,14 +58,16 @@
               <option value="split">分割</option>
             </select>
           </label>
-          <label class="full">商品分類
-            <select id="assetType" name="assetType">
-              <option value="stock">股票／KY 股</option>
-              <option value="etf">一般 ETF</option>
-              <option value="bond_etf">債券 ETF</option>
-            </select>
-            <span class="asset-hint" id="assetHint">自訂 · 股票／KY 股</span>
-          </label>
+          <details class="asset-options full" id="assetOptions">
+            <summary><span>商品分類</span><strong id="assetHint">輸入代號後自動判斷</strong><em>調整</em></summary>
+            <label for="assetType">分類不正確或使用自訂代號時可調整
+              <select id="assetType" name="assetType">
+                <option value="stock">股票／KY 股</option>
+                <option value="etf">一般 ETF</option>
+                <option value="bond_etf">債券 ETF</option>
+              </select>
+            </label>
+          </details>
           <div class="day-trade-row full" id="dayTradeRow" hidden>
             <label><input id="isDayTrade" name="isDayTrade" type="checkbox">符合現股當沖優惠稅率</label>
             <small>只在同日完成、且標的符合規定時勾選；以券商對帳單為準。</small>
@@ -183,7 +188,8 @@
         <div class="card records-card">
           <div class="card-head"><h2>全部流水帳</h2></div>
           <div class="toolbar">
-            <input id="search" type="search" placeholder="搜尋代號或名稱" aria-label="搜尋記錄">
+            <input class="ledger-search" id="search" type="search" placeholder="搜尋代號或名稱" aria-label="搜尋記錄">
+            <input id="filterMonth" type="month" aria-label="篩選月份">
             <select id="filterType" aria-label="篩選類型">
               <option value="">全部類型</option>
               <option value="buy">買進</option>
@@ -256,6 +262,7 @@
   <script src="stocks.js" defer></script>
   <script src="prices.js" defer></script>
   <script src="scripts/config.js" defer></script>
+  <script src="scripts/stock-lookup.js" defer></script>
   <script src="scripts/calculator.js" defer></script>
   <script src="scripts/demo-data.js" defer></script>
   <script src="scripts/portfolio.js" defer></script>

@@ -11,7 +11,7 @@ const { RecordsView } = globalThis.StockLedger;
 test("個股與流水畫面會跳脫外部文字", () => {
   const recordHtml = RecordsView.recordList([{
     id: `x\" onclick=\"alert(1)`, stockName: "<img src=x>", stockCode: "2330", date: "2026-08-09",
-    typeLabel: "買進", amountLabel: "<支出>", mainAmount: "$1", details: "成交", legacy: false, notes: "<script>alert(1)</script>"
+    type: "buy", typeLabel: "買進", amountLabel: "<支出>", mainAmount: "$1", details: "成交", legacy: false, notes: "<script>alert(1)</script>"
   }], "", "");
   const stockHtml = RecordsView.stockList([{
     stockCode: `2330\" autofocus`, stockName: "<b>台積電</b>", active: true, lead: "1,000", leadSuffix: "股",
@@ -20,6 +20,7 @@ test("個股與流水畫面會跳脫外部文字", () => {
   assert.doesNotMatch(recordHtml, /<img|<script/);
   assert.match(recordHtml, /&lt;img/);
   assert.match(recordHtml, /&lt;支出&gt;/);
+  assert.match(recordHtml, /action-buy/);
   assert.doesNotMatch(stockHtml, /<b>|autofocus>/);
   assert.match(stockHtml, /&lt;b&gt;/);
   assert.match(stockHtml, /overview-metrics/);
@@ -33,4 +34,13 @@ test("個股與流水畫面會跳脫外部文字", () => {
   assert.match(cycleHtml, /參考收盤/);
   assert.match(cycleHtml, /market-strip/);
   assert.match(cycleHtml, /回本成本說明/);
+});
+
+test("六種流水動作各自帶有獨立色彩類別", () => {
+  const types = ["buy", "sell", "dividend", "stockDividend", "reduction", "split"];
+  const html = RecordsView.recordList(types.map((type) => ({
+    id: type, stockName: "測試", stockCode: "TEST", date: "2026-08-09",
+    type, typeLabel: type, mainAmount: "$0", details: "", legacy: false, notes: ""
+  })), "", "");
+  types.forEach((type) => assert.match(html, new RegExp(`action-${type}`)));
 });

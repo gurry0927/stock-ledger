@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "stock-ledger-";
-const CACHE_NAME = `${CACHE_PREFIX}v14`;
+const CACHE_NAME = `${CACHE_PREFIX}v15`;
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -9,6 +9,7 @@ const APP_SHELL = [
   "./prices.js",
   "./prices.json",
   "./scripts/config.js",
+  "./scripts/stock-lookup.js",
   "./scripts/calculator.js",
   "./scripts/demo-data.js",
   "./scripts/portfolio.js",

@@ -18,8 +18,11 @@
         <div class="record-bottom"><span class="meta">${escape(item.date || "日期不明")}</span>${id ? `<div class="record-actions"><button class="text-button" type="button" data-edit="${id}">嘗試編輯</button><button class="text-button delete" type="button" data-delete="${id}">刪除</button></div>` : ""}</div>
       </article>`;
     }
+    const actionType = ["buy", "sell", "dividend", "stockDividend", "reduction", "split"].includes(item.type)
+      ? item.type
+      : "";
     return `<article class="record">
-      <div class="record-top"><div><span class="stock">${escape(item.stockName)}</span><span class="code">${escape(item.stockCode)}</span></div><div class="record-tags">${item.demo ? `<span class="demo-badge">示範</span>` : ""}<span class="tag">${escape(item.typeLabel)}</span></div></div>
+      <div class="record-top"><div><span class="stock">${escape(item.stockName)}</span><span class="code">${escape(item.stockCode)}</span></div><div class="record-tags">${item.demo ? `<span class="demo-badge">示範</span>` : ""}<span class="tag action-tag${actionType ? ` action-${actionType}` : ""}">${escape(item.typeLabel)}</span></div></div>
       <div class="record-main"><strong>${item.amountLabel ? `<small>${escape(item.amountLabel)}</small>` : ""}${escape(item.mainAmount)}</strong><div class="meta">${escape(item.details)}</div></div>
       ${item.legacy ? `<div class="legacy-note">舊記錄：費用依目前設定估算，編輯儲存後會固定。</div>` : ""}
       ${item.notes ? `<div class="meta record-note">${escape(item.notes)}</div>` : ""}

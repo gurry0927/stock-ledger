@@ -71,13 +71,15 @@
       String(stock.stockName || "").toLocaleLowerCase("zh-Hant-TW").includes(needle));
   }
 
-  function filterRecords(records, query, type) {
+  function filterRecords(records, query, type, month) {
     const needle = String(query || "").trim().toLocaleLowerCase("zh-Hant-TW");
+    const selectedMonth = /^\d{4}-\d{2}$/.test(String(month || "")) ? String(month) : "";
     return (Array.isArray(records) ? records : []).filter((record) => {
       const matchesType = !type || record.type === type;
+      const matchesMonth = !selectedMonth || String(record.date || "").slice(0, 7) === selectedMonth;
       const matchesQuery = !needle || String(record.stockCode || "").toLocaleLowerCase("zh-Hant-TW").includes(needle) ||
         String(record.stockName || "").toLocaleLowerCase("zh-Hant-TW").includes(needle);
-      return matchesType && matchesQuery;
+      return matchesType && matchesMonth && matchesQuery;
     });
   }
 

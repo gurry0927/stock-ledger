@@ -50,6 +50,17 @@ test("搜尋與類型篩選不會改動原始索引", () => {
   assert.equal(records.length, 2);
 });
 
+test("全部流水帳可同時依月份、類型與關鍵字篩選", () => {
+  const records = [
+    saved("1", "2026-07-31", "buy", "2881", "富邦金", 100, 1),
+    saved("2", "2026-08-01", "buy", "2881", "富邦金", 100, 1),
+    saved("3", "2026-08-10", "sell", "2330", "台積電", 100, 1)
+  ];
+  const filtered = LedgerModel.filterRecords(records, "富邦", "buy", "2026-08");
+  assert.deepEqual(filtered.map((item) => item.id), ["2"]);
+  assert.equal(LedgerModel.filterRecords(records, "", "", "無效月份").length, 3);
+});
+
 test("只有異常流水的代號仍會留在個股索引等待檢查", () => {
   const broken = [{ id: "bad", date: "", type: "buy", stockCode: "BAD", stockName: "異常資料" }];
   const index = LedgerModel.build(broken, { stocks: [] });

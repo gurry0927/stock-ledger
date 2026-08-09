@@ -52,7 +52,7 @@
 記錄頁提供兩層檢視，但不會建立第二份資料：
 
 - 「個股總覽」依股票代號集中顯示持有中與已清倉股票；點選個股後可切換「投資輪次」與「個股流水帳」。
-- 「全部流水帳」保留所有交易依日期排列的檢視與類型篩選。
+- 「全部流水帳」保留所有交易依日期排列的檢視，可依關鍵字、月份與類型篩選。
 - 全部總覽、輪次與個股流水都是從同一份 IndexedDB 原始記錄即時計算；清倉後再次買進會顯示為下一輪。
 
 ## 昨日收盤行情（獨立參考）
@@ -101,10 +101,11 @@ stocks.js                  離線商品清單
 prices.js                  file:// 使用的內建收盤行情快照
 prices.json                HTTPS 每日檢查的靜態行情檔
 scripts/config.js          常數、費率與共用工具
+scripts/stock-lookup.js    歷史代號選單與名稱關鍵字搜尋
 scripts/calculator.js      手續費、稅額與快照計算
 scripts/demo-data.js       可辨識、可整批移除的操作示範資料
 scripts/portfolio.js       持股、移動平均成本與投資輪次推導
-scripts/ledger-model.js    個股索引、流水分組與搜尋篩選
+scripts/ledger-model.js    個股索引、流水分組與關鍵字／月份篩選
 scripts/storage.js         IndexedDB 與原子交易
 scripts/market-data.js     獨立行情驗證、快取與每日檢查
 scripts/csv.js             CSV v4 匯出、驗證與舊版相容

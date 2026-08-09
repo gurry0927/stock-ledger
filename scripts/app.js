@@ -2,7 +2,7 @@
   "use strict";
 
   const App = global.StockLedger;
-  const { Config, Utils, Calculator, DemoData, Portfolio, LedgerModel, Storage, MarketData, Csv, RecordsView } = App;
+  const { Config, Utils, StockLookup, Calculator, DemoData, Portfolio, LedgerModel, Storage, MarketData, Csv, RecordsView } = App;
   const $ = (selector) => document.querySelector(selector);
 
   let records = [];
@@ -10,6 +10,7 @@
   let editingId = null;
   let stockByCode = new Map();
   let stockByName = new Map();
+  let stockDirectory = [];
   let marketState = MarketData.getState();
   let portfolioState = null;
   let ledgerIndex = null;
@@ -147,28 +148,60 @@
       if (!stockByName.has(key)) stockByName.set(key, stock);
     });
 
-    const directory = [...stockByCode.values()].sort((a, b) => a.code.localeCompare(b.code, "en"));
-    $("#stockCodes").innerHTML = directory.map((stock) =>
+    stockDirectory = [...stockByCode.values()].sort((a, b) => a.code.localeCompare(b.code, "en"));
+    const history = StockLookup.history(records, DemoData.isDemo);
+    $("#stockCodes").innerHTML = history.map((stock) =>
       `<option value="${Utils.escapeHtml(stock.code)}" label="${Utils.escapeHtml(stock.name)} · ${Utils.escapeHtml(stock.market)}"></option>`
     ).join("");
-    $("#stockNames").innerHTML = directory.map((stock) =>
-      `<option value="${Utils.escapeHtml(stock.name)}" label="${Utils.escapeHtml(stock.code)} · ${Utils.escapeHtml(stock.market)}"></option>`
-    ).join("");
+  }
+
+  function hideNameSuggestions() {
+    $("#stockNameSuggestions").hidden = true;
+    $("#stockName").setAttribute("aria-expanded", "false");
+  }
+
+  function renderNameSuggestions() {
+    const query = $("#stockName").value.trim();
+    if (!query) {
+      hideNameSuggestions();
+      return;
+    }
+    const exact = stockByName.get(query.toLocaleLowerCase("zh-Hant-TW"));
+    if (exact) {
+      hideNameSuggestions();
+      return;
+    }
+    const matches = StockLookup.search(stockDirectory, query, 20);
+    $("#stockNameSuggestions").innerHTML = matches.length
+      ? matches.map((stock) => `<button class="name-suggestion" type="button" role="option" data-suggestion-code="${Utils.escapeHtml(stock.code)}"><strong>${Utils.escapeHtml(stock.name)}</strong><span>${Utils.escapeHtml(stock.code)} · ${Utils.escapeHtml(stock.market)}</span></button>`).join("")
+      : `<div class="suggestion-empty">找不到相符商品，仍可自行輸入名稱與代號</div>`;
+    $("#stockNameSuggestions").hidden = false;
+    $("#stockName").setAttribute("aria-expanded", "true");
   }
 
   function applyStock(stock) {
     if (!stock) return;
     $("#stockCode").value = stock.code;
     $("#stockName").value = stock.name;
+    $("#stockName").dataset.autofilledFor = stock.code;
     $("#assetType").value = stock.assetType || "stock";
+    $("#assetOptions").open = false;
+    hideNameSuggestions();
     updateAssetHint(stock);
   }
 
   function syncStockFields(sourceId) {
     if (sourceId === "stockCode") {
-      applyStock(stockForCode($("#stockCode").value));
+      const stock = stockForCode($("#stockCode").value);
+      if (stock) {
+        applyStock(stock);
+      } else if ($("#stockName").dataset.autofilledFor) {
+        $("#stockName").value = "";
+        delete $("#stockName").dataset.autofilledFor;
+      }
       return;
     }
+    delete $("#stockName").dataset.autofilledFor;
     const key = $("#stockName").value.trim().toLocaleLowerCase("zh-Hant-TW");
     applyStock(stockByName.get(key));
   }
@@ -185,8 +218,14 @@
   function updateAssetHint(stock) {
     const current = stock || stockForCode($("#stockCode").value);
     const assetType = $("#assetType").value;
-    const market = current ? current.market : "自訂";
-    $("#assetHint").textContent = `${market} · ${Config.ASSET_LABELS[assetType] || Config.ASSET_LABELS.stock}`;
+    const code = $("#stockCode").value.trim();
+    if (current) {
+      $("#assetHint").textContent = `${current.market} · ${Config.ASSET_LABELS[assetType] || Config.ASSET_LABELS.stock}`;
+      return;
+    }
+    $("#assetHint").textContent = code
+      ? `自訂代號 · 請確認${Config.ASSET_LABELS[assetType] || Config.ASSET_LABELS.stock}`
+      : "輸入代號後自動判斷";
   }
 
   function formDraft() {
@@ -414,6 +453,9 @@
 
   function fillForm(record) {
     const enriched = enrichRecord(record);
+    $("#assetOptions").open = false;
+    hideNameSuggestions();
+    delete $("#stockName").dataset.autofilledFor;
     $("#stockCode").value = enriched.stockCode || "";
     $("#stockName").value = enriched.stockName || "";
     $("#date").value = enriched.date || "";
@@ -437,6 +479,9 @@
     $("#recordForm").reset();
     $("#date").value = Utils.localDateString(new Date());
     $("#assetType").value = "stock";
+    $("#assetOptions").open = false;
+    hideNameSuggestions();
+    delete $("#stockName").dataset.autofilledFor;
     $("#formTitle").textContent = "新增記錄";
     $("#editingTag").hidden = true;
     $("#cancelEdit").hidden = true;
@@ -686,6 +731,7 @@
       stockCode: record.stockCode,
       date: record.date,
       typeLabel: Config.TYPE_LABELS[record.type],
+      type: record.type,
       amountLabel,
       mainAmount,
       details,
@@ -696,7 +742,7 @@
   }
 
   function renderRecords() {
-    const visible = LedgerModel.filterRecords(records, $("#search").value, $("#filterType").value);
+    const visible = LedgerModel.filterRecords(records, $("#search").value, $("#filterType").value, $("#filterMonth").value);
     $("#records").innerHTML = RecordsView.recordList(
       visible.map(recordPresentation),
       records.length ? "找不到相符記錄" : "還沒有記錄",
@@ -928,6 +974,7 @@
   function bindEvents() {
     $("#recordForm").addEventListener("input", (event) => {
       if (event.target.id === "stockCode" || event.target.id === "stockName") syncStockFields(event.target.id);
+      if (event.target.id === "stockName") renderNameSuggestions();
       updatePreview();
       scheduleDraftSave();
     });
@@ -935,6 +982,27 @@
       if (event.target.id === "stockCode" || event.target.id === "stockName") syncStockFields(event.target.id);
       updatePreview();
       scheduleDraftSave();
+    });
+    $("#stockNameSuggestions").addEventListener("pointerdown", (event) => event.preventDefault());
+    $("#stockNameSuggestions").addEventListener("click", (event) => {
+      const option = event.target.closest("[data-suggestion-code]");
+      if (!option) return;
+      applyStock(stockForCode(option.dataset.suggestionCode));
+      updatePreview();
+      scheduleDraftSave();
+    });
+    $("#stockName").addEventListener("keydown", (event) => {
+      if (event.key === "Escape") hideNameSuggestions();
+      if (event.key === "ArrowDown" && !$("#stockNameSuggestions").hidden) {
+        const first = $("#stockNameSuggestions").querySelector("button");
+        if (first) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    });
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest(".lookup-field")) hideNameSuggestions();
     });
     $("#recordForm").addEventListener("submit", saveRecord);
     $("#cancelEdit").addEventListener("click", () => {
@@ -979,6 +1047,7 @@
     $("#backToStockOverview").addEventListener("click", () => switchRecordsMode("stocks"));
     $("#stockSearch").addEventListener("input", renderStockOverview);
     $("#search").addEventListener("input", renderRecords);
+    $("#filterMonth").addEventListener("change", renderRecords);
     $("#filterType").addEventListener("change", renderRecords);
     $("#refreshMarketData").addEventListener("click", () => loadMarketData(true));
     $("#recordsPanel").addEventListener("click", (event) => {

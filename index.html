@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#173a34">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="股票帳本">
+  <meta name="description" content="完全離線、資料只存在裝置內的台股交易記帳。">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+  <title>股票帳本</title>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <h1>股票帳本</h1>
+        <p class="subtitle">資料只存在這台裝置裡</p>
+      </div>
+      <button class="icon-button" id="openSettings" type="button" aria-label="開啟設定">⚙︎ 設定</button>
+    </header>
+
+    <nav class="tabbar" role="tablist" aria-label="帳本功能">
+      <button class="tab-button" id="recordsTab" type="button" role="tab" aria-selected="true" aria-controls="recordsPanel" data-tab="records">記錄 <span class="count-badge" id="recordCountBadge">0</span></button>
+      <button class="tab-button" id="addTab" type="button" role="tab" aria-selected="false" aria-controls="addPanel" data-tab="add" tabindex="-1">＋ 新增記錄</button>
+    </nav>
+
+    <section class="tab-panel" id="addPanel" role="tabpanel" aria-labelledby="addTab" data-tab-panel="add" hidden>
+      <div class="card">
+        <div class="card-head">
+          <h2 id="formTitle">新增記錄</h2>
+          <span class="tag" id="editingTag" hidden>編輯中</span>
+        </div>
+        <form class="card-body form-grid" id="recordForm">
+          <label>股票代號
+            <input id="stockCode" name="stockCode" inputmode="text" autocomplete="off" list="stockCodes" placeholder="例如 2330、0050" required maxlength="12">
+            <datalist id="stockCodes"></datalist>
+          </label>
+          <label>股票名稱
+            <input id="stockName" name="stockName" autocomplete="off" list="stockNames" placeholder="例如 台積電" required maxlength="40">
+            <datalist id="stockNames"></datalist>
+          </label>
+          <label>日期
+            <input id="date" name="date" type="date" required>
+          </label>
+          <label>類型
+            <select id="type" name="type" required>
+              <option value="buy">買進</option>
+              <option value="sell">賣出</option>
+              <option value="dividend">配息</option>
+              <option value="stockDividend">配股</option>
+              <option value="reduction">減資</option>
+              <option value="split">分割</option>
+            </select>
+          </label>
+          <label class="full">商品分類
+            <select id="assetType" name="assetType">
+              <option value="stock">股票／KY 股</option>
+              <option value="etf">一般 ETF</option>
+              <option value="bond_etf">債券 ETF</option>
+            </select>
+            <span class="asset-hint" id="assetHint">自訂 · 股票／KY 股</span>
+          </label>
+          <div class="day-trade-row full" id="dayTradeRow" hidden>
+            <label><input id="isDayTrade" name="isDayTrade" type="checkbox">符合現股當沖優惠稅率</label>
+            <small>只在同日完成、且標的符合規定時勾選；以券商對帳單為準。</small>
+          </div>
+          <div class="event-options full" id="eventOptions" hidden>
+            <p class="event-hint" id="eventHint"></p>
+            <label id="reductionKindField" hidden>減資類型
+              <select id="reductionKind" name="reductionKind">
+                <option value="cash">現金減資</option>
+                <option value="loss">虧損減資</option>
+              </select>
+            </label>
+            <label id="reducedSharesField" hidden>實際減少股數
+              <input id="reducedShares" name="reducedShares" type="number" inputmode="numeric" min="1" step="1" placeholder="例如 100">
+            </label>
+            <label id="cashReceivedField" hidden><span id="cashReceivedLabel">實收現金</span>
+              <input id="cashReceivedActual" name="cashReceivedActual" type="number" inputmode="decimal" min="0" step="any" placeholder="留白使用下方計算金額">
+            </label>
+          </div>
+          <div class="full" id="priceField">
+            <label class="field-label" for="price"><span id="priceLabel">成交股價</span></label>
+            <div class="stepper">
+              <button class="step-button" id="priceMinus" type="button" data-price-direction="-1" aria-label="股價減一個升降單位">−</button>
+              <input id="price" name="price" type="number" inputmode="decimal" min="0" step="any" placeholder="0" required>
+              <button class="step-button" id="pricePlus" type="button" data-price-direction="1" aria-label="股價加一個升降單位">＋</button>
+            </div>
+            <div class="field-hint" id="priceTickHint">股票升降單位 0.01 元</div>
+          </div>
+          <div class="full">
+            <label class="field-label" for="shares"><span id="sharesLabel">股數</span></label>
+            <input id="shares" name="shares" type="number" inputmode="numeric" min="1" max="9007199254740991" step="1" placeholder="0" required>
+            <div class="quick-steps" aria-label="快速增加股數">
+              <button class="quick-step" type="button" data-shares-add="1">＋1</button>
+              <button class="quick-step" type="button" data-shares-add="100">＋100</button>
+              <button class="quick-step" type="button" data-shares-add="1000">＋1,000</button>
+            </div>
+          </div>
+          <div class="calculation full" aria-live="polite">
+            <div><span>成交／計算金額</span><strong id="previewGross">$0</strong></div>
+            <div><span>手續費</span><strong id="previewFee">$0</strong></div>
+            <div><span>證交稅</span><strong id="previewTax">$0</strong></div>
+            <div><span id="netLabel">實際支出</span><strong id="previewNet">$0</strong></div>
+          </div>
+          <p class="tax-hint full" id="taxHint">買進不收證交稅</p>
+          <details class="cost-adjustments full" id="costAdjustments">
+            <summary>依對帳單覆寫費用（選填）</summary>
+            <div class="cost-grid">
+              <label>實際手續費
+                <input id="actualCommission" name="actualCommission" type="number" inputmode="decimal" min="0" step="any" placeholder="留白即使用估算">
+              </label>
+              <label id="actualTaxField">實際證交稅
+                <input id="actualTax" name="actualTax" type="number" inputmode="decimal" min="0" step="any" placeholder="留白即使用估算">
+              </label>
+            </div>
+            <button class="clear-costs" id="clearActualCosts" type="button">清除覆寫值</button>
+          </details>
+          <label class="full">備註（選填）
+            <textarea id="notes" name="notes" maxlength="300" placeholder="例如：定期定額、零股、除權息備註"></textarea>
+          </label>
+          <div class="form-actions full">
+            <button class="secondary" id="cancelEdit" type="button" hidden>取消</button>
+            <button class="primary" type="submit" id="saveButton">儲存記錄</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="recordsPanel" role="tabpanel" aria-labelledby="recordsTab" data-tab-panel="records">
+      <div class="summary" aria-label="摘要">
+        <div class="stat"><span>流水筆數</span><strong id="statCount">0</strong></div>
+        <div class="stat"><span>累計買進支出</span><strong id="statBuy">$0</strong></div>
+        <div class="stat"><span>累計賣出收入</span><strong id="statSell">$0</strong></div>
+        <div class="stat"><span>累計現金股利</span><strong id="statDividend">$0</strong></div>
+      </div>
+      <div class="records-switch" role="tablist" aria-label="記錄檢視方式">
+        <button type="button" role="tab" aria-selected="true" data-records-mode="stocks">個股總覽</button>
+        <button type="button" role="tab" aria-selected="false" data-records-mode="ledger">全部流水帳</button>
+      </div>
+
+      <section id="stockOverviewScreen" data-records-screen="stocks">
+        <section class="card portfolio-card" aria-labelledby="portfolioTitle">
+          <div class="card-head portfolio-head">
+            <div>
+              <h2 id="portfolioTitle">個股總覽</h2>
+              <p>點選個股查看投資輪次與流水帳。</p>
+            </div>
+            <div class="portfolio-head-actions">
+              <span class="tag" id="positionCountBadge">0 檔</span>
+              <button class="market-refresh" id="refreshMarketData" type="button">更新行情</button>
+            </div>
+          </div>
+          <div class="overview-toolbar"><input id="stockSearch" type="search" placeholder="搜尋個股代號或名稱" aria-label="搜尋個股"></div>
+          <p class="market-status" id="marketStatus" role="status">收盤行情載入中…</p>
+          <div class="stock-section-head"><h3>持有中</h3><span id="activeStockCount">0 檔</span></div>
+          <div class="positions" id="activeStocks"></div>
+          <div class="stock-section-head closed"><h3>已清倉</h3><span id="closedStockCount">0 檔</span></div>
+          <div class="positions closed-stock-list" id="closedStocks"></div>
+          <div class="portfolio-warnings" id="portfolioWarnings" hidden></div>
+        </section>
+      </section>
+
+      <section id="stockDetailScreen" data-records-screen="detail" hidden>
+        <section class="card stock-detail-card" aria-labelledby="stockDetailTitle">
+          <div class="stock-detail-head">
+            <button class="back-button" id="backToStockOverview" type="button">← 個股總覽</button>
+            <div><h2 id="stockDetailTitle">個股</h2><p id="stockDetailSubtitle"></p></div>
+          </div>
+          <div class="detail-switch" role="tablist" aria-label="個股檢視方式">
+            <button type="button" role="tab" aria-selected="true" data-stock-detail-mode="cycles">投資輪次</button>
+            <button type="button" role="tab" aria-selected="false" data-stock-detail-mode="ledger">個股流水帳</button>
+          </div>
+          <div id="stockCycles" class="cycle-list" data-stock-detail-panel="cycles"></div>
+          <div id="stockRecords" class="records" data-stock-detail-panel="ledger" hidden></div>
+        </section>
+      </section>
+
+      <section id="allRecordsScreen" data-records-screen="ledger" hidden>
+        <div class="card records-card">
+          <div class="card-head"><h2>全部流水帳</h2></div>
+          <div class="toolbar">
+            <input id="search" type="search" placeholder="搜尋代號或名稱" aria-label="搜尋記錄">
+            <select id="filterType" aria-label="篩選類型">
+              <option value="">全部類型</option>
+              <option value="buy">買進</option>
+              <option value="sell">賣出</option>
+              <option value="dividend">配息</option>
+              <option value="stockDividend">配股</option>
+              <option value="reduction">減資</option>
+              <option value="split">分割</option>
+            </select>
+          </div>
+          <div class="records" id="records"></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="settingsDialog">
+    <form id="settingsForm">
+      <div class="dialog-head"><h2>設定與備份</h2><button type="button" id="closeSettings" aria-label="關閉">×</button></div>
+      <div class="dialog-body form-grid">
+        <label class="full">手續費折數（券商 6 折請填 6）
+          <input id="feeDiscount" type="number" inputmode="decimal" min="0" max="10" step="0.01" required>
+        </label>
+        <label>整股每筆最低手續費（元）
+          <input id="regularMinFee" type="number" inputmode="numeric" min="0" step="1" required>
+        </label>
+        <label>零股每筆最低手續費（元）
+          <input id="oddLotMinFee" type="number" inputmode="numeric" min="0" step="1" required>
+        </label>
+        <label class="full">手續費元以下處理
+          <select id="feeRounding">
+            <option value="round">四捨五入</option>
+            <option value="floor">無條件捨去</option>
+            <option value="ceil">無條件進位</option>
+          </select>
+        </label>
+        <p class="hint full">實際費用以券商對帳單為準；單筆記錄可覆寫估算值。</p>
+        <details class="rules-help full">
+          <summary>查看手續費、證交稅與回本成本規則</summary>
+          <div>
+            <p>手續費估算：成交金額 × 0.1425% × 折數，再套用每筆最低費用。</p>
+            <p>證交稅只在賣出時計算：股票／KY 股一般 0.3%、適用的現股當沖 0.15%、一般 ETF 0.1%。非槓桿反向債券 ETF 目前暫停課稅至 2026-12-31。</p>
+            <p>回本成本會從本輪買進支出扣除賣出收入、實收配息與現金減資，只作個人追蹤，不代表券商或稅務成本。</p>
+          </div>
+        </details>
+        <div class="backup-box full">
+          <h3>操作示範資料</h3>
+          <p class="hint">空白帳本會加入有標記的操作範例；可整批刪除，不影響正式記錄，也不會匯出到 CSV。</p>
+          <div class="backup-actions">
+            <button class="secondary" type="button" id="loadDemoData">載入／重設示範</button>
+            <button class="secondary danger-outline" type="button" id="deleteDemoData">刪除全部示範</button>
+          </div>
+        </div>
+        <div class="backup-box full">
+          <h3>CSV 備份</h3>
+          <p class="hint">換手機或清除 Safari 資料前請先匯出。匯入採合併方式，不會清空現有記錄；相同 ID 才會更新。檔案有任何錯誤時整份都不寫入。</p>
+          <div class="backup-actions">
+            <button class="secondary" type="button" id="exportCsv">匯出 CSV</button>
+            <button class="secondary" type="button" id="importCsv">匯入 CSV</button>
+            <input id="csvFile" type="file" accept=".csv,text/csv" hidden>
+          </div>
+        </div>
+      </div>
+      <div class="dialog-actions"><button class="primary" type="submit">儲存設定</button></div>
+    </form>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- 使用傳統 script，讓 Safari 直接以 file:// 開啟時也能執行。順序不可任意調換。 -->
+  <script src="stocks.js" defer></script>
+  <script src="prices.js" defer></script>
+  <script src="scripts/config.js" defer></script>
+  <script src="scripts/calculator.js" defer></script>
+  <script src="scripts/demo-data.js" defer></script>
+  <script src="scripts/portfolio.js" defer></script>
+  <script src="scripts/ledger-model.js" defer></script>
+  <script src="scripts/storage.js" defer></script>
+  <script src="scripts/market-data.js" defer></script>
+  <script src="scripts/csv.js" defer></script>
+  <script src="scripts/records-view.js" defer></script>
+  <script src="scripts/app.js" defer></script>
+</body>
+</html>

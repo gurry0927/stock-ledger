@@ -86,6 +86,7 @@ input, select, textarea {
   min-height: 46px;
   margin-top: 6px;
   padding: 10px 12px;
+  font-size: 16px;
   color: var(--ink);
   background: white;
   border: 1px solid #cbcabe;

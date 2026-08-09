@@ -369,6 +369,7 @@
     const calculation = Calculator.calculateTransaction(draft, settings);
     $("#previewGross").textContent = money(calculation.gross);
     $("#previewFee").textContent = money(calculation.commission.charged, 0);
+    $("#previewFeeLabel").textContent = calculation.commission.actual === null ? "估算手續費" : "實際手續費";
     $("#previewTax").textContent = money(calculation.tax.charged, 0);
     const cashPreview = (draft.type === "dividend" || (draft.type === "reduction" && draft.reductionKind === "cash")) &&
       draft.cashReceivedActual !== null && Number.isFinite(draft.cashReceivedActual)
@@ -378,8 +379,13 @@
     const mixedLotHint = (draft.type === "buy" || draft.type === "sell") && draft.shares >= 1000 && draft.shares % 1000 !== 0
       ? "；股數同時含整股與零股時，券商可能分筆計費，請依對帳單覆寫"
       : "";
-    $("#taxHint").textContent = taxHint(calculation, draft.type) + mixedLotHint;
-    $("#taxHint").hidden = draft.type !== "buy" && draft.type !== "sell";
+    const trade = draft.type === "buy" || draft.type === "sell";
+    const roundingLabels = { round: "四捨五入", floor: "無條件捨去", ceil: "無條件進位" };
+    const feeHint = calculation.commission.actual === null
+      ? `手續費估算：${number(settings.feeDiscount)} 折 · ${calculation.lotType === "odd" ? "零股" : "整股"}最低 ${money(calculation.commission.minimum, 0)} · ${roundingLabels[settings.feeRounding] || "四捨五入"}`
+      : `已使用對帳單手續費 ${money(calculation.commission.actual, 0)}`;
+    $("#taxHint").textContent = trade ? `${feeHint}；${taxHint(calculation, draft.type)}${mixedLotHint}` : "";
+    $("#taxHint").hidden = !trade;
 
     if (draft.type === "buy" || draft.type === "sell") {
       const tick = priceTick(draft.price, 1);

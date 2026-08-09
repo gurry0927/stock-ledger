@@ -86,6 +86,19 @@ test("實際對帳單費用可覆寫估算", () => {
   assert.equal(result.net, 99988);
 });
 
+test("223 元買進 15 股會依折扣估算，並可用對帳單 1 元覆寫", () => {
+  const estimated = Calculator.calculateTransaction(trade({ type: "buy", price: 223, shares: 15 }), settings);
+  const actual = Calculator.calculateTransaction(trade({
+    type: "buy", price: 223, shares: 15, commissionActual: 1
+  }), settings);
+  assert.equal(estimated.gross, 3345);
+  assert.equal(estimated.commission.raw, 2.859975);
+  assert.equal(estimated.commission.charged, 3);
+  assert.equal(estimated.net, 3348);
+  assert.equal(actual.commission.charged, 1);
+  assert.equal(actual.net, 3346);
+});
+
 test("非買賣類型不收手續費與證交稅", () => {
   const result = Calculator.calculateTransaction(trade({ type: "dividend", price: 2.5, shares: 1000, taxActual: 99 }), settings);
   assert.equal(result.gross, 2500);

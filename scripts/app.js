@@ -133,7 +133,7 @@
       return;
     }
 
-    hint.textContent = "目前 iPhone/Safari 不能由網頁直接跳出加入主畫面的系統視窗，需要照上面的分享選單操作。";
+    hint.textContent = "照上面的分享選單操作，就能從手機桌面打開。";
     button.hidden = true;
   }
 

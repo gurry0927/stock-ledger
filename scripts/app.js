@@ -20,6 +20,8 @@
   let toastTimer;
   let draftTimer;
   let draftSaveWarningShown = false;
+  let deferredInstallPrompt = null;
+  let pwaInstalled = false;
 
   function normalizeSettings(value) {
     const source = value || {};
@@ -105,6 +107,55 @@
     $("#toast").textContent = message;
     $("#toast").classList.add("show");
     toastTimer = setTimeout(() => $("#toast").classList.remove("show"), 2400);
+  }
+
+  function isStandaloneMode() {
+    return Boolean(
+      (global.matchMedia && global.matchMedia("(display-mode: standalone)").matches) ||
+      global.navigator.standalone
+    );
+  }
+
+  function updateInstallHelp() {
+    const hint = $("#installPromptHint");
+    const button = $("#installPwa");
+    if (!hint || !button) return;
+
+    if (isStandaloneMode() || pwaInstalled) {
+      hint.textContent = "你現在看起來已經是從桌面圖示開啟，畫面會比較接近 App。";
+      button.hidden = true;
+      return;
+    }
+
+    if (deferredInstallPrompt) {
+      hint.textContent = "這個瀏覽器支援直接安裝。你可以按下面的按鈕，或改用瀏覽器選單加入桌面。";
+      button.hidden = false;
+      return;
+    }
+
+    hint.textContent = "目前 iPhone/Safari 不能由網頁直接跳出加入主畫面的系統視窗，需要照上面的分享選單操作。";
+    button.hidden = true;
+  }
+
+  async function requestInstallPrompt() {
+    if (!deferredInstallPrompt) {
+      showToast("這個瀏覽器需要用分享選單加入桌面");
+      updateInstallHelp();
+      return;
+    }
+
+    const promptEvent = deferredInstallPrompt;
+    deferredInstallPrompt = null;
+    updateInstallHelp();
+
+    try {
+      promptEvent.prompt();
+      const choice = await promptEvent.userChoice;
+      showToast(choice && choice.outcome === "accepted" ? "已送出安裝" : "已取消安裝");
+    } catch (error) {
+      console.error(error);
+      showToast("無法開啟安裝提示，請改用瀏覽器選單");
+    }
   }
 
   function stockForCode(code) {
@@ -1065,6 +1116,16 @@
       openStockDetail(stockCard.dataset.stockCode);
     });
 
+    $("#openHelp").addEventListener("click", () => {
+      updateInstallHelp();
+      $("#helpDialog").showModal();
+    });
+    $("#closeHelp").addEventListener("click", () => $("#helpDialog").close());
+    $("#helpDialog").addEventListener("click", (event) => {
+      if (event.target === $("#helpDialog")) $("#helpDialog").close();
+    });
+    $("#installPwa").addEventListener("click", requestInstallPrompt);
+
     $("#openSettings").addEventListener("click", () => $("#settingsDialog").showModal());
     $("#closeSettings").addEventListener("click", () => $("#settingsDialog").close());
     $("#settingsDialog").addEventListener("click", (event) => {
@@ -1134,6 +1195,19 @@
       document.body.innerHTML = `<main class="shell"><section class="card"><div class="card-body"><h1>無法開啟帳本</h1><p>${Utils.escapeHtml(error.message || "瀏覽器無法使用 IndexedDB")}</p><p>請先不要清除瀏覽器資料，並重新開啟這個頁面。</p></div></section></main>`;
     }
   }
+
+  global.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    updateInstallHelp();
+  });
+
+  global.addEventListener("appinstalled", () => {
+    pwaInstalled = true;
+    deferredInstallPrompt = null;
+    updateInstallHelp();
+    showToast("已安裝到桌面");
+  });
 
   init();
 })(window);
